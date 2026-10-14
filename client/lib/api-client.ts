@@ -234,6 +234,20 @@ export class ApiClient {
     });
   }
 
+  requestPasswordReset(email: string) {
+    return this.request<{ status: string; resetToken?: string; expiresAt?: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  resetPassword(token: string, password: string) {
+    return this.request<{ status: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, password }),
+    });
+  }
+
   listProjects() {
     return this.request<Project[]>('/projects');
   }

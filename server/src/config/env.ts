@@ -21,6 +21,7 @@ const schema = z.object({
   SITE_CREDENTIAL_ENCRYPTION_KEY: z.string().optional(),
   CONVERSION_WORKER_CONCURRENCY: z.coerce.number().int().min(1).max(16).default(2),
   CONVERSION_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(5).default(3),
+  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().min(5).max(1440).default(30),
 }).superRefine((value, context) => {
   if (value.AI_PROVIDER !== "disabled" && (!value.AI_API_KEY || !value.AI_MODEL)) {
     context.addIssue({

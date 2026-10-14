@@ -1,7 +1,7 @@
 import cors from "cors";
 import express, { Router } from "express";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import rateLimit, { type RateLimitExceededEventHandler } from "express-rate-limit";
 import { env } from "./config/env.js";
 import { prisma } from "./infrastructure/database/prisma.js";
 import { storage } from "./infrastructure/storage/local.js";
@@ -51,12 +51,43 @@ export function createApp() {
       res.status(503).json({ status: "not_ready" });
     }
   });
-  v1.use("/auth", rateLimit({
+
+  // Authentication endpoints (register/login/logout/me) share one in-memory
+  // bucket. Password recovery is split into its own bucket so a burst of
+  // sign-in attempts cannot lock a user out of recovering their account (and a
+  // burst of recovery attempts cannot lock them out of signing in). Both emit
+  // the same JSON 429 shape as the rest of the API.
+  const rateLimitExceededHandler: RateLimitExceededEventHandler = (_req, res) => {
+    res.status(429).json({
+      error: {
+        code: "RATE_LIMITED",
+        message: "Too many requests. Please wait a few minutes before trying again.",
+      },
+    });
+  };
+
+  const isPasswordResetPath = (path: string) =>
+    path === "/forgot-password" || path === "/reset-password";
+
+  const passwordResetLimiter = rateLimit({
     windowMs: 15 * 60_000,
     limit: 10,
     standardHeaders: "draft-8",
     legacyHeaders: false,
-  }), authRouter);
+    skip: (req) => !isPasswordResetPath(req.path),
+    handler: rateLimitExceededHandler,
+  });
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60_000,
+    limit: 10,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    skip: (req) => isPasswordResetPath(req.path),
+    handler: rateLimitExceededHandler,
+  });
+
+  v1.use("/auth", passwordResetLimiter, authLimiter, authRouter);
   v1.use(requireAuth);
   v1.use("/capabilities", capabilitiesRouter);
   v1.use(sourceImportsRouter);

@@ -188,3 +188,38 @@ describe('ApiClient capabilities and conversion requests', () => {
     expect(completed.sourceImport?.kind).toBe('FIGMA_FILE');
   });
 });
+
+describe('ApiClient password reset', () => {
+  it('posts the email to the forgot-password route', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 'reset_link_sent' }), {
+      status: 202,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ApiClient({ baseUrl: 'http://localhost:4000/api/v1' });
+
+    await client.requestPasswordReset('user@example.com');
+
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:4000/api/v1/auth/forgot-password');
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({ email: 'user@example.com' });
+  });
+
+  it('posts the token and new password to the reset-password route', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: 'password_reset' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const client = new ApiClient({ baseUrl: 'http://localhost:4000/api/v1' });
+
+    await client.resetPassword('reset-token-value', 'brand-new-password');
+
+    expect(fetchMock.mock.calls[0][0]).toBe('http://localhost:4000/api/v1/auth/reset-password');
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST');
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body as string)).toEqual({
+      token: 'reset-token-value',
+      password: 'brand-new-password',
+    });
+  });
+});

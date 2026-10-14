@@ -72,6 +72,14 @@ export function AuthCard({ mode = 'login' }: { mode?: 'login' | 'register' }) {
         </button>
       </form>
 
+      {mode === 'login' ? (
+        <p className="mt-3 text-center text-sm">
+          <Link href="/forgot-password" className="font-semibold text-brand-600 hover:text-brand-700">
+            Forgot password?
+          </Link>
+        </p>
+      ) : null}
+
       <p className="mt-6 text-center text-sm text-slate-600">
         {mode === 'login' ? 'Need an account?' : 'Already have an account?'}{' '}
         <Link href={mode === 'login' ? '/register' : '/login'} className="font-semibold text-brand-600 hover:text-brand-700">

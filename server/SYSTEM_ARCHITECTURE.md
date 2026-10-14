@@ -177,7 +177,8 @@ current worker functionality.
 
 Base path: `/api/v1`. Request and response bodies are JSON unless the endpoint
 returns no content. Every endpoint below requires a bearer token except
-`/health/live`, `/health/ready`, `/auth/register`, and `/auth/login`.
+`/health/live`, `/health/ready`, `/auth/register`, `/auth/login`,
+`/auth/forgot-password`, and `/auth/reset-password`.
 `/auth/logout` and `/auth/me` perform their own authentication middleware.
 
 All project resources are scoped to project membership. `OWNER`, `EDITOR`, and
@@ -194,11 +195,20 @@ another user's project.
 | `POST /auth/login` | Same fields as registration | `200`, `{ user, token, expiresAt }` |
 | `POST /auth/logout` | No body required | `204`; revokes the current persisted session |
 | `GET /auth/me` | No body | `200`, `{ user: { id, email, createdAt } }` |
+| `POST /auth/forgot-password` | `{ "email": "user@example.com" }` | Always `202`, `{ "status": "reset_link_sent" }`; the response is identical whether or not the account exists so it cannot be used to enumerate emails. Outside production the plaintext `resetToken` is returned for local testing since no mail provider is configured |
+| `POST /auth/reset-password` | `{ "token": "...", "password": "minimum-12-characters" }` | `200`, `{ "status": "password_reset" }`; updates the password, marks the token used (invalidating all outstanding tokens for the user), and revokes all of the user's sessions. Invalid, expired, or reused tokens return `400 INVALID_RESET_TOKEN` |
 
 Email is normalized to lowercase. Password length is 12–128 characters.
 Sessions expire after 12 hours. Send the token as
 `Authorization: Bearer <token>`. JWT verification is backed by the session
 record, so revoking a session invalidates the token immediately.
+
+Password-reset tokens are single-use, expire after `PASSWORD_RESET_TTL_MINUTES`
+(default 30), and are stored only as a SHA-256 hash so a database leak cannot be
+used to reset accounts. The default delivery transport logs the reset link to
+the server log; replace `deliverPasswordReset` in
+`src/infrastructure/email/notifier.ts` with a transactional email provider
+before enabling self-service resets in production.
 
 ### Health
 

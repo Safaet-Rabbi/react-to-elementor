@@ -477,7 +477,8 @@ adapter. Use Node.js 20.19 or newer.
 
 Implemented versioned routes currently include:
 
-- `/api/v1/auth/register`, `/login`, `/logout`, and `/me`
+- `/api/v1/auth/register`, `/login`, `/forgot-password`, `/reset-password`,
+  `/logout`, and `/me`
 - `/api/v1/projects` and `/api/v1/projects/:projectId`
 - `/api/v1/projects/:projectId/uploads`, `/api/v1/uploads/:uploadId/content`,
   and `/api/v1/uploads/:uploadId/complete`
